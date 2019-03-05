@@ -5,7 +5,11 @@ library(tigris)
 library(sf)
 library(lwgeom)
 
+source("https://raw.githubusercontent.com/tibo31/spatial_project/master/AIM.R")
+?get_acs
 
+
+load_variables(2016, dataset, cache = FALSE)
 ### Before all , getting key
 
 key <- "df893564ae6ef336cd5b451d81b4fa233342acdb"
@@ -22,6 +26,9 @@ popacs5 <- get_acs(
 )
 popacs5 <- popacs5 %>%
   select(NAME, geometry)
+
+US_counties49 <- popacs5 %>%
+  filter(!grepl(NAME,pattern = paste))
 
 ### st_geod_area to obtain area from the geometry
 superficie <- st_geod_area(popacs5) / 1000000
@@ -44,13 +51,17 @@ vars_exps <- get_acs(
     incomepercap = "B19301_001"
   ),
   output = "wide",
-  survey = "acs5"
+  survey = "acs5",
+  geometry = TRUE
 )
 
 vars_exps <- vars_exps[, !endsWith(colnames(vars_exps), "M")]
 
+str(vars_exps)
+vars_exps$geometry
 
-
+get_acs(example())
+example(topic = get_acs,run.dontrun = TRUE)
 #### plot example
 
 popacs6 <- get_acs(
@@ -60,12 +71,19 @@ popacs6 <- get_acs(
   geometry = TRUE
 )
 
+states.exclude <- c("Puerto Rico","Hawaii","Alaska")
+
+US_states49 <- popacs6 %>% 
+  filter(!NAME%in%states.exclude)
+
+plot(US_states49)
+
 popacs6 <- popacs6 %>%
   select(NAME, geometry)
 ###
 plot(popacs5[, -c(1, 2, 3)])
 ### plot also for state
-plot(popacs6[, -c(1, 2, 3)])
+plot(US_states49[, -c(1, 2, 3)])
 
 
 ## it did't work good , better visualisation with other
@@ -77,3 +95,28 @@ plot(popacs6[, -c(1, 2, 3)])
 
 
 ### juste use help of "get_acs function"
+library(tidycensus)
+library(tidyverse)
+library(viridis)
+
+tarr <- get_acs(geography = "tract", variables = "B19013_001",
+                state = "TX", county = "Tarrant", geometry = TRUE)
+
+ggplot(tarr, aes(fill = estimate, color = estimate)) +
+  geom_sf() +
+  coord_sf(crs = 26914) +
+  scale_fill_viridis(option = "magma") +
+  scale_color_viridis(option = "magma")
+
+
+vt <- get_acs(geography = "county", variables = "B19013_001", state = "VT")
+
+vt %>%
+  mutate(NAME = gsub(" County, Vermont", "", NAME)) %>%
+  ggplot(aes(x = estimate, y = reorder(NAME, estimate))) +
+  geom_errorbarh(aes(xmin = estimate - moe, xmax = estimate + moe)) +
+  geom_point(color = "red", size = 3) +
+  labs(title = "Household income by county in Vermont",
+       subtitle = "2012-2016 American Community Survey",
+       y = "",
+       x = "ACS estimate (bars represent margin of error)")
