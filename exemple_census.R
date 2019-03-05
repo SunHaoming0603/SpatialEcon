@@ -6,8 +6,6 @@ library(sf)
 library(lwgeom)
 
 source("https://raw.githubusercontent.com/tibo31/spatial_project/master/AIM.R")
-?get_acs
-
 
 load_variables(2016, dataset, cache = FALSE)
 ### Before all , getting key

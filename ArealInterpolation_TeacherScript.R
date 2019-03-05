@@ -7,9 +7,16 @@ library(sf)
 source("https://raw.githubusercontent.com/tibo31/spatial_project/master/AIM.R")
 
 
-# import the data
+# import the census data
 load("Data/Census/Census.RData")
-str(Census.county49)
 
 
-## area wie
+# AWI ----
+# area wiegthin interpolation
+
+
+
+# Daisymetric ----
+
+
+# Regression ----
