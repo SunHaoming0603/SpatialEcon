@@ -2,6 +2,7 @@
 library(tidycensus)
 library(dplyr)
 library(stringr)
+options(tigris_use_cache = TRUE)
 
 # set key
 key <- "df893564ae6ef336cd5b451d81b4fa233342acdb"
@@ -29,8 +30,8 @@ vars_to_load <- c(
 )
 
 # extract the data for diffrent aggregation levels
-Census.county <- get_acs(
-  geography = "county",
+Census.tract <- get_acs(
+  geography = "tract",
   variables = vars_to_load,
   output = "wide",
   survey = "acs5",
@@ -38,6 +39,13 @@ Census.county <- get_acs(
 ) 
 
 
+Census.county <- get_acs(
+  geography = "county",
+  variables = vars_to_load,
+  output = "wide",
+  survey = "acs5",
+  geometry = TRUE
+) 
 
 Census.state <- get_acs(
   geography = "state",
