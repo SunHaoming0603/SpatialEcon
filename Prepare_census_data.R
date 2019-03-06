@@ -2,6 +2,7 @@
 library(tidycensus)
 library(dplyr)
 library(stringr)
+library(sf)
 options(tigris_use_cache = TRUE)
 
 # set key
@@ -15,8 +16,8 @@ V16 <- load_variables(2016,"acs5")
 vars_to_load <- c(
   medianage = "B01002_001",
   population = "B01003_001",
-  male = "B01001_002",
-  female = "B01001_026",
+  pop_male = "B01001_002",
+  pop_female = "B01001_026",
   pop_white = "B01001A_001",
   pop_black = "B01001B_001",
   pop_asia = "B01001D_001",
@@ -30,14 +31,14 @@ vars_to_load <- c(
 )
 
 # extract the data for diffrent aggregation levels
-Census.tract <- get_acs(
+Census.CA.tract <- get_acs(
   geography = "tract",
+  state = "CA",
   variables = vars_to_load,
   output = "wide",
   survey = "acs5",
   geometry = TRUE
 ) 
-
 
 Census.county <- get_acs(
   geography = "county",
@@ -70,9 +71,10 @@ Census.state49 <- Census.state %>%
   filter(!NAME%in%states.exclude)
 
 par(mfrow = c(1,2))
-plot(Census.county49$geometry)
-plot(Census.state49$geometry)
+plot(Census.county49 %>% filter(STATE == "California") %>% select(geometry))
+#plot(Census.state49$geometry)
+plot(Census.CA.tract$geometry)
 
 
 save(Census.state49, Census.county49, file = "Data/Census/Census.RData")
-#load("Data/Census/Census.RData")
+load("Data/Census/Census.RData")

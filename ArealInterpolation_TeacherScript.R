@@ -1,6 +1,5 @@
 # Spatial interpolation 
 # teacher script
-
 library(dplyr)
 library(sf)
 # functions written by Thibault Laurent
@@ -23,6 +22,7 @@ summary(Census.state49)
 # Daisymetric ----
 
 
+
 # Regression ----
 # with auxilliary information
 Census.state49 <- Census.state49 %>%
@@ -31,7 +31,7 @@ Census.state49 <- Census.state49 %>%
 Census.county49 <- Census.county49 %>%
   mutate(unemp_rate = unemployedE/populationE )
 
-# i) Intensive variable (average income)
+# i) Intensive variable (average income: incomepercapE)
 # ==> normal distribution
 lm_income <- lm(incomepercapE ~ unemp_rate + medianageE
                 , data = Census.state49  # use source level data to fit the model
@@ -39,8 +39,8 @@ lm_income <- lm(incomepercapE ~ unemp_rate + medianageE
 
 predict(lm_income,newdata = Census.county49,type = "response")
 
-# ii) Extensive variable (crimes)
-# ==> normal distribution
+# ii) Extensive variable (bartenders)
+# ==> poisson
 lm_income <- lm(incomepercapE ~ unemp_rate + medianageE
                 , data = Census.state49  # use source level data to fit the model
                 , weights = populationE) # weighted least-square!
@@ -48,8 +48,6 @@ lm_income <- lm(incomepercapE ~ unemp_rate + medianageE
 predict(lm_income,newdata = Census.county49 %>% select(-populationE),type = "response")
 
 
-
-# Iinfer 
 
 
 
