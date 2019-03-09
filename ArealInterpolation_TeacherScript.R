@@ -2,6 +2,8 @@
 # teacher script
 library(dplyr)
 library(sf)
+library(sp)
+library(rgeos)
 
 # functions written by Thibault Laurent
 # https://github.com/tibo31/spatial_project/blob/master/AIM.R
@@ -30,10 +32,16 @@ Y_s.ext <- Census.state49[,c("carsE")] %>% st_drop_geometry()
 # Methode 1: AWI ----
 # areal wiegthin interpolation
 
+County49.awi <- 
+daw(nature = "intensive",
+    sources = as(Census.state49,"Spatial"),  # daw works with spatial (sp) 
+    targets = as(Census.county49,"Spatial"), # convert sf objects to sp objects!
+    y = "incomepercapE")
+
+(County49.awi$incomepercapEdaw - Census.county49$incomepercapE) %>% hist()
 
 
 # Methode 2: Daisymetric ----
-
 
 
 # Methode 3: Regression ----
