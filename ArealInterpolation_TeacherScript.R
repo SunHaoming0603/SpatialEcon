@@ -44,6 +44,72 @@ daw(nature = "intensive",
 # Methode 2: Daisymetric ----
 
 
+st_inter <- intersect.spdf(sources = iris_sample_with_X_spatial,
+                           targets = bv_sample_spatial,
+                           out = "spdf")
+
+row.names(st_inter) <- as.character(1:length(st_inter))
+
+
+
+#Import population data at the grid level
+
+grid_rp <- st_read(dsn = "C:/Users/ASUS/Desktop/data/ME_USNG_UTM19.shp")
+
+#in order to save the data
+st_crs(grid_rp) <- 27572
+
+#transformation
+grid_rp_2154 <- st_transform(grid_rp, "+init=epsg:4238")
+#grid_rp_2154 <- spTransform(grid_rp, CRS("+init=epsg:4238"))
+Census.state49<- st_transform(Census.state49, "+init=epsg:4238")
+
+Census.state49$geometry
+
+ind_sample <- st_intersects(Census.state49, grid_rp_2154)
+grid_sample <- grid_rp_2154[unique(unlist(ind_sample)), ]
+
+car_db <- read.dbf("C:/Users/ASUS/Desktop/data/ME_USNG_UTM19.dbf")
+grid_sample <- merge(grid_sample, car_db, all.x = T)
+
+
+
+#We transform the sf object into a Spatial object :
+grid_sample_spatial <- as(grid_sample, "Spatial")
+
+############################################################################################################
+
+st_inter <- intersect.spdf(sources = iris_sample_with_X_spatial,
+                           targets = bv_sample_spatial)
+
+
+daw_pop_intersect <- daw(sources = grid_sample_spatial,
+                         targets = st_inter,
+                         y=c("populationE"),
+                         nature = "extensive", scaling = F)
+
+bv_sample_spatial_with_X <- dax(sources = iris_sample_with_X_spatial,
+                                targets = bv_sample_spatial_with_X,
+                                y = c("populationE"),
+                                st.df = daw_pop_intersect@data,
+                                x = "femaleE",
+                                scaling = F)
+
+choroLayer(spdf = daw_pop_intersect, var = "populationE",
+           breaks = seq(min(daw_pop_intersect$ind_cdaw, na.rm = T),
+                        max(daw_pop_intersect$ind_cdaw, na.rm = T),
+                        length.out = 20))
+
+bv_sample_spatial_with_X <- dax(sources = iris_sample_with_X_spatial,
+                                targets = bv_sample_spatial_with_X,
+                                y = c("GEOID" ,"NAME" ,"medianageE","populationE","maleE","femaleE","pop_whiteE",   
+                                       "pop_blackE","pop_asiaE","medianincomeE","unemployedE",
+                                       "laborforceE","incomepercapE","ginicoefE",   
+                                        "carsE","bartendersE","geometry"),
+                                st.df = daw_pop_intersect@data,
+                                x = "populationE",
+                                scaling = F)
+
 # Methode 3: Regression ----
 # As first step construct the weight matrix W
 W_0 <-
