@@ -2,76 +2,94 @@
 # teacher script
 library(dplyr)
 library(sf)
+
 # functions written by Thibault Laurent
+# https://github.com/tibo31/spatial_project/blob/master/AIM.R
 source("https://raw.githubusercontent.com/tibo31/spatial_project/master/AIM.R")
 
 
-# import the census data
+# import the census data ----
 load("Data/Census/Census.RData")
-summary(Census.state49)
+
+# illustrate target and source zones
+par(mfrow = c(1,2))
+plot(Census.state49$geometry, main = "Source Zones" ,sub = "49 states of the USA")
+plot(Census.county49$geometry, main = "Target Zones",sub = "counties withon these 49 sates")
 
 
-# Estimate income on county level
+# Define target variable (Y) for all methodes
+# (to have comparable results)
+
+# intensive case: incomepercapE (GDP)  at source level 
+Y_s.int <- Census.state49[,c("incomepercapE")] %>% st_drop_geometry()
+
+# extensive case: carsE (number of cars)  at source level
+Y_s.ext <- Census.state49[,c("carsE")] %>% st_drop_geometry()
 
 
-# AWI ----
-# area wiegthin interpolation
-
-
-
-# Daisymetric ----
-
-
-
-# Regression ----
-# with auxilliary information
-Census.county49 <- Census.county49 %>%
-  mutate(unemp_rate = unemployedE/populationE,
-         car_per_cap = carsE/populationE)
-
-Census.state49 <- Census.state49 %>%
-  mutate(unemp_rate = unemployedE/populationE,
-         car_per_cap = carsE/populationE)
+# Methode 1: AWI ----
+# areal wiegthin interpolation
 
 
 
-# create the matrix WX
-Y_s <- Census.state49[,c("incomepercapE")] %>% st_drop_geometry()
-X <- Census.county49[,c("unemp_rate","medianageE","ginicoefE","car_per_cap")] %>% st_drop_geometry()
+# Methode 2: Daisymetric ----
 
+
+
+# Methode 3: Regression ----
+# As first step construct the weight matrix W
 W_0 <-
 sapply(as.list(Census.state49$NAME), function(x) {
   Census.county49$populationE*(Census.county49$STATE==x)}) %>% t()
 W <- diag(Census.state49$populationE^(-1)) %*% W_0
-# contorl
-rowSums(W) # as 
+# control
+rowSums(W) # 
 
-WX <- W %*% as.matrix(X) 
-WX <- as.data.frame(WX)
-
+# Then define X and calculate WX for each case
+# (X contains the auxilliary information at target level)
 
 # i) Intensive variable (average income: incomepercapE)
-# ==> normal distribution
-lm_income <- lm(incomepercapE ~ unemp_rate + medianageE + ginicoefE + car_per_cap
-                , data = cbind(Y_s,WX)  # use source level data to fit the model
+# which variables shoudl be included in the model ?
+auxilliary.int <- c("unemp_rate","medianageE","ginicoefE"
+                    ,"car_per_cap","area_m2")
+
+X.int <- Census.county49[,aux_information.int] %>% st_drop_geometry()
+
+WX.int <- W %*% as.matrix(X.int) 
+WX.int <- as.data.frame(WX.int)
+
+# Intensive variable ==> normal distribution ==> linear model
+lm_income <- lm(incomepercapE ~ unemp_rate + medianageE + ginicoefE + car_per_cap + area_m2
+                , data = cbind(Y_s.int,WX.int)  # use source level data to fit the model
                 , weights = Census.state49$populationE
                 ) # weighted least-square!
 
-pred_income <- 
-predict(lm_income,newdata = Census.county49,type = "response")
+pred_income <- predict(lm_income,newdata = Census.county49,type = "response")
 
 hist(pred_income - Census.county49$incomepercapE,"FD")
-t.test(pred_income - Census.county49$incomepercapE)
 
-# ii) Extensive variable (bartenders)
-# ==> poisson
-pois_cars <- lm(incomepercapE ~ unemp_rate + medianageE
-                , data = Census.state49  # use source level data to fit the model
-                , weights = populationE) # weighted least-square!
+# ii) Extensive variable (number of cars: carsE)
+# which variables shoudl be included in the model ?
+auxilliary.ext <- c("unemp_rate","medianageE","ginicoefE"
+                    ,"medianincomeE","populationE","area_m2")
 
-predict(lm_income,newdata = Census.county49,type = "response") - Census.county49$incomepercapE
+X.ext <- Census.county49[,auxilliary.ext] %>% st_drop_geometry()
+
+WX.ext <- W %*% as.matrix(X.ext) 
+WX.ext <- as.data.frame(WX.ext)
 
 
+# Intensive variable ==> poisson distribution ==> glm(family = "poisson)
+pois_cars <- glm(carsE ~  populationE + area_m2 
+                , family = poisson(link = "id")
+                , data = cbind(Y_s.ext,WX.ext)  # use source level data to fit the model
+                , weights = Census.state49$populationE
+                )
+pois_cars %>% summary()
+
+pred_cars <- predict(pois_cars,newdata = Census.county49,type = "response")
+
+(Census.county49$carsE - pred_cars) %>% summary()
 
 
 

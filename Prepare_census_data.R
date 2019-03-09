@@ -31,14 +31,14 @@ vars_to_load <- c(
 )
 
 # extract the data for diffrent aggregation levels
-Census.CA.tract <- get_acs(
-  geography = "tract",
-  state = "CA",
-  variables = vars_to_load,
-  output = "wide",
-  survey = "acs5",
-  geometry = TRUE
-) 
+# Census.CA.tract <- get_acs(
+#   geography = "tract",
+#   state = "CA",
+#   variables = vars_to_load,
+#   output = "wide",
+#   survey = "acs5",
+#   geometry = TRUE
+# ) 
 
 Census.county <- get_acs(
   geography = "county",
@@ -63,18 +63,19 @@ states.exclude <- c("Puerto Rico","Hawaii","Alaska")
 Census.county49 <- Census.county %>% 
   select(-ends_with("M")) %>%
   mutate(STATE = str_extract(NAME, '\\b[^,]+$')) %>% # macth from the first word that is not followed by comma
-  filter(!STATE%in%states.exclude) 
+  filter(!STATE%in%states.exclude) %>%
+  mutate(unemp_rate = unemployedE/populationE,
+         car_per_cap = carsE/populationE,
+         area_m2 = st_area(geometry) %>% as.numeric())
+
 
 
 Census.state49 <- Census.state %>% 
   select(-ends_with("M")) %>%
-  filter(!NAME%in%states.exclude)
-
-par(mfrow = c(1,2))
-plot(Census.county49 %>% filter(STATE == "California") %>% select(geometry))
-#plot(Census.state49$geometry)
-plot(Census.CA.tract$geometry)
-
+  filter(!NAME%in%states.exclude) %>%
+  mutate(unemp_rate = unemployedE/populationE,
+         car_per_cap = carsE/populationE,
+         area_m2 = st_area(geometry) %>% as.numeric())
 
 save(Census.state49, Census.county49, file = "Data/Census/Census.RData")
-load("Data/Census/Census.RData")
+#load("Data/Census/Census.RData")
